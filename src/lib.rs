@@ -1,3 +1,85 @@
+//! [`Fallible`] is an [`Option`] with inverted [`Try`]-semantics.
+//!
+//! What this means is that using the `?` operator on a [`Fallible<E>`] will exit early
+//! if an error `E` is contained within, or instead act as a no-op, if the value is [`Fallible::Ok`].
+//!
+//! ```
+//! # use fallible::Fallible;
+//! # fn test_chained_failures() {
+//! // Check many numbers, returning early if a tested
+//! // number is equal to zero.
+//! fn check_many_numbers() -> Fallible<&'static str> {
+//!     let fails_if_number_is_zero = |n: u32| {
+//!         if n == 0 {
+//!             Fallible::Err("number is zero")
+//!         } else {
+//!             Fallible::Ok
+//!         }
+//!     };
+//!
+//!     fails_if_number_is_zero(3)?;
+//!     fails_if_number_is_zero(0)?; // <--- Will cause early exit
+//!
+//!     // Following lines are never reached
+//!     fails_if_number_is_zero(10)?;
+//!     Fallible::Ok
+//! }
+//!
+//! assert_eq!(check_many_numbers(), Fallible::Err("number is zero"));
+//! # }
+//! ```
+//! # Purpose
+//! [`Fallible`] is similar in usage to `Result<(), E>`, but without introducing a
+//! unit value `Ok(())` to cover the [`Ok`] case.
+//! 
+//! For example, the following function could be better expressed using fallible, since
+//! the happy path does not produce a value:
+//! ```
+//! fn validate_number(x: u32) -> Result<(), &'static str> {
+//!     match x {
+//!         0 ..= 9 => Err("number is too small"),
+//!         10..=30 => Ok(()),
+//!         31..    => Err("number is too large")
+//!     }
+//! }
+//! ```
+//! Using [`Fallible`]:
+//! 
+//! ```
+//! # use fallible::Fallible;
+//! fn validate_number(x: u32) -> Fallible<&'static str> {
+//!     match x {
+//!         0 ..= 9 => Fallible::Err("number is too small"),
+//!         10..=30 => Fallible::Ok,
+//!         31..    => Fallible::Err("number is too large")
+//!     }
+//! }
+//! ```
+//! # Compatibility
+//! 
+//! [`Fallible`] contains utility functions for mapping to and from [`Result`] and [`Option`],
+//! as well as [`FromResidual`] implementations for automatically performing these conversions
+//! when used with the `?` operator.
+//! ```
+//! # use fallible::Fallible;
+//! fn fails_if_true(fail: bool) -> Fallible<&'static str> {
+//!     if fail {
+//!         Fallible::Err("this function always fails!")
+//!     } else {
+//!         Fallible::Ok
+//!     }
+//! }
+//! 
+//! fn try_producing_value() -> Result<u32, &'static str> {
+//!     fails_if_true(false)?;
+//!     fails_if_true(true)?;
+//! 
+//!     Ok(10)
+//! }
+//! ```
+//! 
+//! 
+
 #![no_std]
 #![feature(try_trait_v2)]
 #![feature(const_trait_impl)]
@@ -9,36 +91,6 @@ use core::marker::Destruct;
 use core::mem;
 use core::ops::{ControlFlow, Deref, DerefMut, FromResidual, Try};
 
-/// [`Fallible`] is an [`Option`] with inverted [`Try`]-semantics.
-///
-/// What this means is that using the `?` operator on a [`Fallible<E>`] will exit early
-/// if an error `E` is contained within, or instead act as a no-op, if the value is [`Fallible::Ok`].
-///
-/// ```
-/// # use fallible::Fallible;
-/// # fn test_chained_failures() {
-/// // Check many numbers, returning early if a tested
-/// // number is equal to zero.
-/// fn check_many_numbers() -> Fallible<&'static str> {
-///     let fails_if_number_is_zero = |n: u32| {
-///         if n == 0 {
-///             Fallible::Err("number is zero")
-///         } else {
-///             Fallible::Ok
-///         }
-///     };
-///
-///     fails_if_number_is_zero(3)?;
-///     fails_if_number_is_zero(0)?; // <--- Will cause early exit
-/// 
-///     // Following lines are never reached
-///     fails_if_number_is_zero(10)?;
-///     Fallible::Ok
-/// }
-///
-/// assert_eq!(check_many_numbers(), Fallible::Err("number is zero"));
-/// # }
-/// ```
 #[must_use]
 #[derive(Copy, PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
 pub enum Fallible<E> {
@@ -348,7 +400,7 @@ where
 
 impl<E> Try for Fallible<E> {
     type Output = ();
-    type Residual = E;
+    type Residual = Fallible<E>;
 
     #[inline]
     fn from_output(_: Self::Output) -> Self {
@@ -359,15 +411,25 @@ impl<E> Try for Fallible<E> {
     fn branch(self) -> ControlFlow<Self::Residual, Self::Output> {
         match self {
             Fallible::Ok => ControlFlow::Continue(()),
-            Fallible::Err(e) => ControlFlow::Break(e),
+            Fallible::Err(e) => ControlFlow::Break(Fallible::Err(e)),
         }
     }
 }
 
-impl<E> FromResidual<E> for Fallible<E> {
+impl<E> FromResidual<Fallible<E>> for Fallible<E> {
     #[inline]
-    fn from_residual(residual: E) -> Self {
-        Fallible::Err(residual)
+    fn from_residual(residual: Fallible<E>) -> Self {
+        residual
+    }
+}
+
+impl<T, E> FromResidual<Fallible<E>> for Result<T, E> {
+    #[inline]
+    fn from_residual(residual: Fallible<E>) -> Self {
+        match residual {
+            Fallible::Ok => unreachable!(),
+            Fallible::Err(e) => Err(e),
+        }
     }
 }
 

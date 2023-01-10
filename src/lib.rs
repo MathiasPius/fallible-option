@@ -49,6 +49,8 @@
 //!
 //! ## Motivation
 //! `Errable` fills the gap left by `Option` and `Result` and clearly conveys intent and potential outcomes of a function.
+//! 
+//! A function which returns `Errable` has only two potential outcomes, it can fail with an error `E`, or it can succeed.
 //!
 //! ### Why not `Result`?
 //! Because `Result` implies output. Take `std::fs::rename` for instance:

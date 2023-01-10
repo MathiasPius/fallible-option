@@ -49,7 +49,7 @@
 //!
 //! ## Motivation
 //! `Errable` fills the gap left by `Option` and `Result` and clearly conveys intent and potential outcomes of a function.
-//! 
+//!
 //! A function which returns `Errable` has only two potential outcomes, it can fail with an error `E`, or it can succeed.
 //!
 //! ### Why not `Result`?
@@ -199,6 +199,12 @@ impl<E> Errable<E> {
     ///
     /// Leaves the original `Errable` in-place, creating a new one with a reference
     /// to the original one, additionally coercing the contents via [`Deref`].
+    ///
+    /// ```rust
+    /// # use errable::Errable::{self, Fail};
+    /// let fail: Errable<String> = Fail("something went wrong".to_owned());
+    /// assert_eq!(fail.as_deref(), Fail("something went wrong"))
+    /// ```
     #[inline]
     pub const fn as_deref(&self) -> Errable<&<E as Deref>::Target>
     where
@@ -214,6 +220,19 @@ impl<E> Errable<E> {
     ///
     /// Leaves the original `Errable` in-place, creating a new one containing a mutable reference to
     /// the inner type's [`Deref::Target`] type.
+    ///
+    /// ```rust
+    /// # use errable::Errable::{self, Fail};
+    /// let mut fail = Fail("uh oh!".to_owned());
+    ///
+    /// fail.as_deref_mut().map(|err| {
+    ///     err.make_ascii_uppercase();
+    ///     err
+    /// });
+    ///
+    /// assert_eq!(fail, Fail("UH OH!".to_owned()));
+    /// ```
+    ///
     #[inline]
     pub const fn as_deref_mut(&mut self) -> Errable<&mut <E as Deref>::Target>
     where
@@ -227,6 +246,16 @@ impl<E> Errable<E> {
 
     /// Converts from `&mut Errable<E>` to `Errable<&mut E>`
     ///
+    /// ```rust
+    /// # use errable::Errable::{self, Fail, Success};
+    /// let mut fail = Fail("uh oh!".to_owned());
+    /// match fail.as_mut() {
+    ///     Fail(err) => err.make_ascii_uppercase(),
+    ///     Success => {}
+    /// }
+    ///
+    /// assert_eq!(fail, Fail("UH OH!".to_owned()))
+    /// ```
     #[inline]
     pub const fn as_mut(&mut self) -> Errable<&mut E> {
         match self {
@@ -236,6 +265,15 @@ impl<E> Errable<E> {
     }
 
     /// Converts from `&Errable<E>` to `Errable<&E>`
+    ///
+    /// ```rust
+    /// # use errable::Errable::{self, Fail};
+    /// let fail = Fail("uh oh!");
+    /// let err_length = fail.as_ref().map(|err| err.len());
+    ///
+    /// assert_eq!(err_length, Fail(6));
+    ///
+    /// ```
     #[inline]
     pub const fn as_ref(&self) -> Errable<&E> {
         match self {
@@ -245,43 +283,81 @@ impl<E> Errable<E> {
     }
 
     /// Returns true if the value is a `Success`, otherwise false.
+    ///
+    /// ```rust
+    /// # use errable::Errable::{self, Fail, Success};
+    /// assert_eq!(Fail("some error").is_successful(), false);
+    /// assert_eq!(Success::<&str>.is_successful(), true)
+    /// ```
     #[inline]
     pub const fn is_successful(&self) -> bool {
         matches!(self, Success)
     }
 
     /// Returns true if the value is a `Fail`, otherwise false.
+    ///
+    /// ```rust
+    /// # use errable::Errable::{self, Fail, Success};
+    /// assert_eq!(Fail("some error").is_fail(), true);
+    /// assert_eq!(Success::<&str>.is_fail(), false)
+    /// ```
     #[inline]
     pub const fn is_fail(&self) -> bool {
         matches!(self, Fail(_))
     }
 
     /// Unwrap the contained error or panics if no error has occurred.
+    ///
+    /// ```rust
+    /// # use errable::Errable::{self, Fail, Success};
+    /// let fail = Fail(70);
+    /// assert_eq!(fail.unwrap_fail(), 70);
+    /// ```
+    ///
+    /// ```rust,should_panic
+    /// # use errable::Errable::{self, Fail, Success};
+    /// let fail: Errable<u32> = Success;
+    /// assert_eq!(fail.unwrap_fail(), 70);
+    /// ```
     #[inline]
-    pub fn unwrap_fail(self) {
+    pub fn unwrap_fail(self) -> E {
         match self {
             Success => panic!("called `Errable::unwrap_fail()` on a `Errable::Success` value"),
-            Fail(_) => (),
+            Fail(err) => err,
         }
     }
 
     /// Returns `true` if the Errable is a `Fail` value containing an error
     /// equivalent to `f`
+    ///
+    /// ```rust
+    /// # use errable::Errable::{self, Fail};
+    /// let fail = Fail("hello".to_owned());
+    /// assert!(fail.contains(&"hello"))
+    /// ```
     #[inline]
-    pub const fn contains<F: ~const PartialEq<E>>(&self, f: &F) -> bool {
+    pub const fn contains<U: ~const PartialEq<E>>(&self, x: &U) -> bool {
         match self {
             Success => false,
-            Fail(e) => f.eq(e),
+            Fail(e) => x.eq(e),
         }
     }
 
-    /// Maps a `Errable<E>` to `Errable<F>` by applying a function
+    /// Maps an `Errable<E>` to `Errable<U>` by applying a function
     /// to the contained error.
+    ///
+    /// ```rust
+    /// # use errable::Errable::{self, Fail};
+    /// let fail = Fail("hello");
+    /// let fail = fail.map(|err| format!("{err} world!"));
+    ///
+    /// assert_eq!(fail, Fail("hello world!".to_owned()));
+    /// ```
     #[inline]
-    pub const fn map<F, O>(self, op: O) -> Errable<F>
+    pub const fn map<F, U>(self, op: F) -> Errable<U>
     where
-        O: ~const FnOnce(E) -> F,
-        O: ~const Destruct,
+        F: ~const FnOnce(E) -> U,
+        F: ~const Destruct,
         E: ~const Destruct,
     {
         match self {
@@ -290,8 +366,14 @@ impl<E> Errable<E> {
         }
     }
 
-    /// Transforms the `Errable<E>` into a [`Result<(), E>`], where `Fail(e)`
+    /// Transforms the `Errable<E>` into a `Result<(), E>`, where `Fail(e)`
     /// becomes `Err(e)` and `Success` becomes `Ok(())`
+    /// ```rust
+    /// # use errable::Errable::{self, Fail};
+    /// let fail = Fail("error").result();
+    ///
+    /// assert_eq!(fail, Err("error"));
+    /// ```
     #[inline]
     pub const fn result(self) -> Result<(), E>
     where
@@ -303,8 +385,15 @@ impl<E> Errable<E> {
         }
     }
 
-    /// Borrows the `Errable<E>` as an [`Option<E>`], yielding none
+    /// Borrows the `Errable<E>` as an `Option<E>`, yielding none
     /// if no error occurred.
+    /// ```rust
+    /// # use errable::Errable::{self, Fail};
+    /// let fail = Fail("error occurred");
+    /// let maybe_error = fail.err();
+    ///
+    /// assert_eq!(maybe_error, Some(&"error occurred"));
+    /// ```
     #[inline]
     pub const fn err(&self) -> Option<&E> {
         match self {
@@ -313,8 +402,13 @@ impl<E> Errable<E> {
         }
     }
 
-    /// Constructs a [`Result<T, E>`] from self.
+    /// Constructs a `Result<T, E>` from self.
+    /// ```rust
+    /// # use errable::Errable::{self, Fail};
+    /// let fail: Result<u32, &str> = Fail("some error").err_or(10);
     ///
+    /// assert_eq!(fail, Err("some error"));
+    /// ```
     /// `Fail(e)` becomes `Err(e)` and `Success` becomes `Ok(value)`
     #[inline]
     pub const fn err_or<T>(self, value: T) -> Result<T, E>
@@ -329,8 +423,17 @@ impl<E> Errable<E> {
     }
 
     /// Replaces the contained error (if any) with None,
-    /// and returns an [`Option<E>`] with the contained error,
+    /// and returns an `Option<E>` with the contained error,
     /// if the outcome was `Fail`.
+    /// ```rust
+    /// # use errable::Errable::{self, Fail, Success};
+    /// let mut fail = Fail("something went wrong");
+    ///
+    /// let err = fail.take();
+    ///
+    /// assert_eq!(fail, Success);
+    /// assert_eq!(err, Some("something went wrong"));
+    /// ```
     #[inline]
     pub const fn take(&mut self) -> Option<E>
     where
@@ -413,6 +516,17 @@ where
     /// # Panics
     /// Panics if the value is a `Fail`, with a panic message including
     /// the content of the `Fail`.
+    /// ```rust
+    /// # use errable::Errable::{self, Fail, Success};
+    /// let success: Errable<()> = Success;
+    /// success.unwrap();
+    /// ```
+    ///
+    /// ```rust,should_panic
+    /// # use errable::Errable::{self, Fail, Success};
+    /// let fail = Fail("hello world");
+    /// fail.unwrap();
+    /// ```
     #[inline]
     pub fn unwrap(self) {
         match self {

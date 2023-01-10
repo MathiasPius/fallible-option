@@ -1,3 +1,5 @@
+# Errable
+
 <!-- cargo-rdme start -->
 
 [`Errable`](https://docs.rs/errable/latest/errable/enum.Errable.html) is an [`Option`](https://doc.rust-lang.org/stable/core/option/enum.Option.html) with inverted [`Try`](https://doc.rust-lang.org/stable/core/ops/trait.Try.html#)-semantics.
@@ -14,7 +16,7 @@ This is in contrast to `Option` where using `?` on a `None`-value will exit earl
 |          `Result<T` | `, E>`            |
 |     `Option<T>`     | **`Errable<E>`**  |
 
-# Example
+### Example
 This code illustrates how `Errable` can be used to write succint
 validation code which exits early in case of failure.
 
@@ -47,10 +49,10 @@ fn check_many_numbers() -> Errable<&'static str> {
 assert_eq!(check_many_numbers(), Errable::Fail("number is zero"));
 ```
 
-# Motivation
+### Motivation
 `Errable` fills the gap left by `Option` and `Result` and clearly conveys intent and potential outcomes of a function.
 
-### Why not `Result`?
+#### Why not `Result`?
 Because `Result` implies output. Take `std::fs::rename` for instance:
 
 If I told you that the return type of `rename` was a `Result<T, E>`, what would you guess `T` and `E` to be?
@@ -67,7 +69,7 @@ produces any output, it can only signal errors. So why not signal that clearly t
 I would argue that using a type which signals the potential for failure, but no output upon success would
 more clearly express the intent and potential outcomes when using this function.
 
-### Why not `Option`?
+#### Why not `Option`?
 Potential failure *could* be expressed using an `Option<E>`, but as stated above, the `Try`-semantics
 of `Option` makes it unergonomic to work with:
 
@@ -96,7 +98,7 @@ fn check_many_numbers() -> Option<Error> {
 }
 ```
 
-# Conversion from `Result`
+### Conversion from `Result`
 Switching from using `Result` to `Errable` is very simple, as illustrated with this before/after example:
 
 ```rust
@@ -119,7 +121,7 @@ fn validate_number(x: u32) -> Errable<&'static str> {
     }
 }
 ```
-# Compatibility
+### Compatibility
 
 `Errable` contains utility functions for mapping to and from [`Result`] and [`Option`],
 as well as [`FromResidual`] implementations for automatically performing these conversions

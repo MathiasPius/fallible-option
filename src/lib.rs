@@ -12,7 +12,7 @@
 //! |          `Result<T` | `, E>`            |
 //! |     `Option<T>`     | **`Errable<E>`**  |
 //!
-//! # Example
+//! ## Example
 //! This code illustrates how `Errable` can be used to write succint
 //! validation code which exits early in case of failure.
 //!
@@ -47,7 +47,7 @@
 //! # }
 //! ```
 //!
-//! # Motivation
+//! ## Motivation
 //! `Errable` fills the gap left by `Option` and `Result` and clearly conveys intent and potential outcomes of a function.
 //!
 //! ### Why not `Result`?
@@ -96,7 +96,7 @@
 //! }
 //! ```
 //!
-//! # Conversion from `Result`
+//! ## Conversion from `Result`
 //! Switching from using `Result` to `Errable` is very simple, as illustrated with this before/after example:
 //!
 //! ```rust
@@ -120,7 +120,7 @@
 //!     }
 //! }
 //! ```
-//! # Compatibility
+//! ## Compatibility
 //!
 //! `Errable` contains utility functions for mapping to and from [`Result`] and [`Option`],
 //! as well as [`FromResidual`] implementations for automatically performing these conversions

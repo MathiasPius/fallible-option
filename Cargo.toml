@@ -1,8 +1,9 @@
 [package]
 name = "errable"
 version = "0.1.0"
+authors = ["Mathias Pius <contact@pius.io>"]
+description = "Errable is an Option with inverted Try-semantics."
+keywords = ["error-handling", "result", "try"]
+repository = "https://github.com/MathiasPius/errable"
+license = "MIT"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]

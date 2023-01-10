@@ -1,4 +1,9 @@
-# Errable
+# Errable [![Latest Version]][crates.io] [![Docs]][docs.rs]
+
+[Latest Version]: https://img.shields.io/crates/v/errable
+[crates.io]: https://crates.io/crates/errable
+[Docs]: https://docs.rs/errable/badge.svg
+[docs.rs]: https://docs.rs/errable
 
 <!-- cargo-rdme start -->
 

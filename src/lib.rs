@@ -1,16 +1,16 @@
-//! [`Errable`] is an [`Option`] with inverted [`Try`]-semantics.
+//! [`Errable`](crate::Errable) is an [`Option`](::core::option::Option) with inverted [`Try`](https://doc.rust-lang.org/stable/core/ops/trait.Try.html#)-semantics.
 //!
 //! What this means is that using the `?` operator on a `Errable<E>` will exit early
 //! if an error `E` is contained within, or instead act as a no-op, if the value is `Success`.
 //!
 //! This is in contrast to `Option` where using `?` on a `None`-value will exit early.
 //!
-//! `Errable` fills the gap left by the [`Result`] and [`Option`] types:
+//! `Errable` fills the gap left by the [`Result`](::core::result::Result) and [`Option`](::core::option::Option) types:
 //!
-//! |   Potential Success   |  Potential Failure    |
-//! |-----------------------|-----------------------|
-//! | [`Result<T`](Result)  |   [`, E>`](Result)    |
-//! |     [`Option<T>`]     |  **[`Errable<E>`]**   |
+//! |   Potential Success | Potential Failure |
+//! |---------------------|-------------------|
+//! |          `Result<T` | `, E>`            |
+//! |     `Option<T>`     | **`Errable<E>`**  |
 //!
 //! # Example
 //! This code illustrates how `Errable` can be used to write succint
@@ -68,7 +68,7 @@
 //! more clearly express the intent and potential outcomes when using this function.
 //!
 //! ### Why not `Option`?
-//! Potential failure *could* be expressed using an `Option<E>`, but as stated above, the [`Try`]-semantics
+//! Potential failure *could* be expressed using an `Option<E>`, but as stated above, the `Try`-semantics
 //! of `Option` makes it unergonomic to work with:
 //!
 //! ```rust

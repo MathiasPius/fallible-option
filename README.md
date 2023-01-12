@@ -7,7 +7,7 @@
 
 <!-- cargo-rdme start -->
 
-[`Fallible`](https://docs.rs/fallible-option/latest/fallible-option/enum.Fallible.html) is an [`Option`](https://doc.rust-lang.org/stable/core/option/enum.Option.html) with inverted [`Try`](https://doc.rust-lang.org/stable/core/ops/trait.Try.html#)-semantics.
+[`Fallible`](https://docs.rs/fallible-option/latest/fallible_option/enum.Fallible.html) is an [`Option`](https://doc.rust-lang.org/stable/core/option/enum.Option.html) with inverted [`Try`](https://doc.rust-lang.org/stable/core/ops/trait.Try.html#)-semantics.
 
 What this means is that using the `?` operator on a `Fallible<E>` will exit early
 if an error `E` is contained within, or instead act as a no-op, if the value is `Success`.
@@ -26,7 +26,7 @@ This code illustrates how `Fallible` can be used to write succint
 validation code which exits early in case of failure.
 
 ```rust
-use fallible-option::Fallible::{self, Fail, Success};
+use fallible_option::Fallible::{self, Fail, Success};
 
 // Validates the input number `n`, returning a `Fail`
 // if the input number is zero, or `Success` otherwise.

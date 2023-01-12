@@ -633,10 +633,16 @@ impl<E> Try for Fallible<E> {
     }
 }
 
-impl<E> FromResidual<Fallible<E>> for Fallible<E> {
+impl<E, U> FromResidual<Fallible<U>> for Fallible<E>
+where
+    E: From<U>,
+{
     #[inline]
-    fn from_residual(residual: Fallible<E>) -> Self {
-        residual
+    fn from_residual(residual: Fallible<U>) -> Self {
+        match residual {
+            Success => Success,
+            Fail(u) => Fail(u.into()),
+        }
     }
 }
 
@@ -667,5 +673,42 @@ impl<E> FromResidual<Result<Infallible, E>> for Fallible<E> {
             Ok(_) => Success,
             Err(e) => Fail(e),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::Fallible::{self, Fail, Success};
+
+    #[test]
+    fn casting_conversion() {
+        #[derive(Debug, PartialEq)]
+        struct InnerError(pub u8);
+
+        #[derive(Debug, PartialEq)]
+        enum OuterError {
+            Inner(InnerError),
+        }
+
+        impl From<InnerError> for OuterError {
+            fn from(value: InnerError) -> Self {
+                OuterError::Inner(value)
+            }
+        }
+
+        fn inner_error() -> Fallible<InnerError> {
+            Fail(InnerError(1))
+        }
+
+        fn outer_error() -> Fallible<OuterError> {
+            inner_error()?;
+
+            Success
+        }
+
+        assert_eq!(
+            outer_error().unwrap_fail(),
+            OuterError::Inner(InnerError(1))
+        );
     }
 }

@@ -1,9 +1,9 @@
 [package]
-name = "errable"
+name = "fallible-option"
 version = "0.2.0"
 authors = ["Mathias Pius <contact@pius.io>"]
-description = "Errable is an Option with inverted Try-semantics."
+description = "Fallible is an Option with inverted Try-semantics."
 keywords = ["error-handling", "result", "try"]
-repository = "https://github.com/MathiasPius/errable"
+repository = "https://github.com/MathiasPius/fallible-option"
 license = "MIT"
 edition = "2021"

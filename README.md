@@ -1,36 +1,36 @@
-# Errable [![Latest Version]][crates.io] [![Docs]][docs.rs]
+# Fallible [![Latest Version]][crates.io] [![Docs]][docs.rs]
 
-[Latest Version]: https://img.shields.io/crates/v/errable
-[crates.io]: https://crates.io/crates/errable
-[Docs]: https://docs.rs/errable/badge.svg
-[docs.rs]: https://docs.rs/errable
+[Latest Version]: https://img.shields.io/crates/v/fallible-option
+[crates.io]: https://crates.io/crates/fallible-option
+[Docs]: https://docs.rs/fallible-option/badge.svg
+[docs.rs]: https://docs.rs/fallible-option
 
 <!-- cargo-rdme start -->
 
-[`Errable`](https://docs.rs/errable/latest/errable/enum.Errable.html) is an [`Option`](https://doc.rust-lang.org/stable/core/option/enum.Option.html) with inverted [`Try`](https://doc.rust-lang.org/stable/core/ops/trait.Try.html#)-semantics.
+[`Fallible`](https://docs.rs/fallible-option/latest/fallible-option/enum.Fallible.html) is an [`Option`](https://doc.rust-lang.org/stable/core/option/enum.Option.html) with inverted [`Try`](https://doc.rust-lang.org/stable/core/ops/trait.Try.html#)-semantics.
 
-What this means is that using the `?` operator on a `Errable<E>` will exit early
+What this means is that using the `?` operator on a `Fallible<E>` will exit early
 if an error `E` is contained within, or instead act as a no-op, if the value is `Success`.
 
 This is in contrast to `Option` where using `?` on a `None`-value will exit early.
 
-`Errable` fills the gap left by the [`Result`](https://doc.rust-lang.org/stable/core/result/enum.Result.html) and [`Option`](https://doc.rust-lang.org/stable/core/option/enum.Option.html) types:
+`Fallible` fills the gap left by the [`Result`](https://doc.rust-lang.org/stable/core/result/enum.Result.html) and [`Option`](https://doc.rust-lang.org/stable/core/option/enum.Option.html) types:
 
 |   Potential Success | Potential Failure |
 |---------------------|-------------------|
 |          `Result<T` | `, E>`            |
-|     `Option<T>`     | **`Errable<E>`**  |
+|     `Option<T>`     | **`Fallible<E>`**  |
 
 ### Example
-This code illustrates how `Errable` can be used to write succint
+This code illustrates how `Fallible` can be used to write succint
 validation code which exits early in case of failure.
 
 ```rust
-use errable::Errable::{self, Fail, Success};
+use fallible-option::Fallible::{self, Fail, Success};
 
 // Validates the input number `n`, returning a `Fail`
 // if the input number is zero, or `Success` otherwise.
-fn fails_if_number_is_zero(n: u32) -> Errable<&'static str> {
+fn fails_if_number_is_zero(n: u32) -> Fallible<&'static str> {
     if n == 0 {
         Fail("number is zero")
     } else {
@@ -40,7 +40,7 @@ fn fails_if_number_is_zero(n: u32) -> Errable<&'static str> {
 
 // Check many numbers, returning early if a tested
 // number is equal to zero.
-fn check_many_numbers() -> Errable<&'static str> {
+fn check_many_numbers() -> Fallible<&'static str> {
     fails_if_number_is_zero(1)?;
     fails_if_number_is_zero(3)?;
     fails_if_number_is_zero(0)?; // <--- Will cause early exit
@@ -51,13 +51,13 @@ fn check_many_numbers() -> Errable<&'static str> {
     Success
 }
 
-assert_eq!(check_many_numbers(), Errable::Fail("number is zero"));
+assert_eq!(check_many_numbers(), Fallible::Fail("number is zero"));
 ```
 
 ### Motivation
-`Errable` fills the gap left by `Option` and `Result` and clearly conveys intent and potential outcomes of a function.
+`Fallible` fills the gap left by `Option` and `Result` and clearly conveys intent and potential outcomes of a function.
 
-A function which returns `Errable` has only two potential outcomes, it can fail with an error `E`, or it can succeed.
+A function which returns `Fallible` has only two potential outcomes, it can fail with an error `E`, or it can succeed.
 
 #### Why not `Result`?
 Because `Result` implies output. Take `std::fs::rename` for instance:
@@ -106,7 +106,7 @@ fn check_many_numbers() -> Option<Error> {
 ```
 
 ### Conversion from `Result`
-Switching from using `Result` to `Errable` is very simple, as illustrated with this before/after example:
+Switching from using `Result` to `Fallible` is very simple, as illustrated with this before/after example:
 
 ```rust
 fn validate_number(x: u32) -> Result<(), &'static str> {
@@ -117,10 +117,10 @@ fn validate_number(x: u32) -> Result<(), &'static str> {
     }
 }
 ```
-Using `Errable`:
+Using `Fallible`:
 
 ```rust
-fn validate_number(x: u32) -> Errable<&'static str> {
+fn validate_number(x: u32) -> Fallible<&'static str> {
     match x {
         0 ..= 9 => Fail("number is too small"),
         10..=30 => Success,
@@ -130,11 +130,11 @@ fn validate_number(x: u32) -> Errable<&'static str> {
 ```
 ### Compatibility
 
-`Errable` contains utility functions for mapping to and from [`Result`] and [`Option`],
+`Fallible` contains utility functions for mapping to and from [`Result`] and [`Option`],
 as well as [`FromResidual`] implementations for automatically performing these conversions
 when used with the `?` operator.
 ```rust
-fn fails_if_true(should_fail: bool) -> Errable<&'static str> {
+fn fails_if_true(should_fail: bool) -> Fallible<&'static str> {
     if should_fail {
         Fail("Darn it!")
     } else {

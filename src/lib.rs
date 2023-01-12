@@ -1,28 +1,28 @@
-//! [`Errable`](crate::Errable) is an [`Option`](::core::option::Option) with inverted [`Try`](https://doc.rust-lang.org/stable/core/ops/trait.Try.html#)-semantics.
+//! [`Fallible`](crate::Fallible) is an [`Option`](::core::option::Option) with inverted [`Try`](https://doc.rust-lang.org/stable/core/ops/trait.Try.html#)-semantics.
 //!
-//! What this means is that using the `?` operator on a `Errable<E>` will exit early
+//! What this means is that using the `?` operator on a `Fallible<E>` will exit early
 //! if an error `E` is contained within, or instead act as a no-op, if the value is `Success`.
 //!
 //! This is in contrast to `Option` where using `?` on a `None`-value will exit early.
 //!
-//! `Errable` fills the gap left by the [`Result`](::core::result::Result) and [`Option`](::core::option::Option) types:
+//! `Fallible` fills the gap left by the [`Result`](::core::result::Result) and [`Option`](::core::option::Option) types:
 //!
 //! |   Potential Success | Potential Failure |
 //! |---------------------|-------------------|
 //! |          `Result<T` | `, E>`            |
-//! |     `Option<T>`     | **`Errable<E>`**  |
+//! |     `Option<T>`     | **`Fallible<E>`**  |
 //!
 //! ## Example
-//! This code illustrates how `Errable` can be used to write succint
+//! This code illustrates how `Fallible` can be used to write succint
 //! validation code which exits early in case of failure.
 //!
 //! ```rust
-//! use errable::Errable::{self, Fail, Success};
+//! use fallible_option::Fallible::{self, Fail, Success};
 //!
 //! # fn test_chained_failures() {
 //! // Validates the input number `n`, returning a `Fail`
 //! // if the input number is zero, or `Success` otherwise.
-//! fn fails_if_number_is_zero(n: u32) -> Errable<&'static str> {
+//! fn fails_if_number_is_zero(n: u32) -> Fallible<&'static str> {
 //!     if n == 0 {
 //!         Fail("number is zero")
 //!     } else {
@@ -32,7 +32,7 @@
 //!
 //! // Check many numbers, returning early if a tested
 //! // number is equal to zero.
-//! fn check_many_numbers() -> Errable<&'static str> {
+//! fn check_many_numbers() -> Fallible<&'static str> {
 //!     fails_if_number_is_zero(1)?;
 //!     fails_if_number_is_zero(3)?;
 //!     fails_if_number_is_zero(0)?; // <--- Will cause early exit
@@ -43,14 +43,14 @@
 //!     Success
 //! }
 //!
-//! assert_eq!(check_many_numbers(), Errable::Fail("number is zero"));
+//! assert_eq!(check_many_numbers(), Fallible::Fail("number is zero"));
 //! # }
 //! ```
 //!
 //! ## Motivation
-//! `Errable` fills the gap left by `Option` and `Result` and clearly conveys intent and potential outcomes of a function.
+//! `Fallible` fills the gap left by `Option` and `Result` and clearly conveys intent and potential outcomes of a function.
 //!
-//! A function which returns `Errable` has only two potential outcomes, it can fail with an error `E`, or it can succeed.
+//! A function which returns `Fallible` has only two potential outcomes, it can fail with an error `E`, or it can succeed.
 //!
 //! ### Why not `Result`?
 //! Because `Result` implies output. Take `std::fs::rename` for instance:
@@ -99,7 +99,7 @@
 //! ```
 //!
 //! ## Conversion from `Result`
-//! Switching from using `Result` to `Errable` is very simple, as illustrated with this before/after example:
+//! Switching from using `Result` to `Fallible` is very simple, as illustrated with this before/after example:
 //!
 //! ```rust
 //! fn validate_number(x: u32) -> Result<(), &'static str> {
@@ -110,11 +110,11 @@
 //!     }
 //! }
 //! ```
-//! Using `Errable`:
+//! Using `Fallible`:
 //!
 //! ```rust
-//! # use errable::Errable::{self, Fail, Success};
-//! fn validate_number(x: u32) -> Errable<&'static str> {
+//! # use fallible_option::Fallible::{self, Fail, Success};
+//! fn validate_number(x: u32) -> Fallible<&'static str> {
 //!     match x {
 //!         0 ..= 9 => Fail("number is too small"),
 //!         10..=30 => Success,
@@ -124,12 +124,12 @@
 //! ```
 //! ## Compatibility
 //!
-//! `Errable` contains utility functions for mapping to and from [`Result`] and [`Option`],
+//! `Fallible` contains utility functions for mapping to and from [`Result`] and [`Option`],
 //! as well as [`FromResidual`] implementations for automatically performing these conversions
 //! when used with the `?` operator.
 //! ```rust
-//! # use errable::Errable::{self, Fail, Success};
-//! fn fails_if_true(should_fail: bool) -> Errable<&'static str> {
+//! # use fallible_option::Fallible::{self, Fail, Success};
+//! fn fails_if_true(should_fail: bool) -> Fallible<&'static str> {
 //!     if should_fail {
 //!         Fail("Darn it!")
 //!     } else {
@@ -185,28 +185,28 @@ use core::ops::{ControlFlow, Deref, DerefMut, FromResidual, Try};
 /// Outcome of an operation that does not produce a value on success.
 #[must_use]
 #[derive(Copy, PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
-pub enum Errable<E> {
+pub enum Fallible<E> {
     /// No error was produced.
     Success,
     /// An error was produced.
     Fail(E),
 }
 
-use Errable::{Fail, Success};
+use Fallible::{Fail, Success};
 
-impl<E> Errable<E> {
-    /// Converts from `Errable<E>` (or `&Errable<E>`) to `Errable<&E::Target>`.
+impl<E> Fallible<E> {
+    /// Converts from `Fallible<E>` (or `&Fallible<E>`) to `Fallible<&E::Target>`.
     ///
-    /// Leaves the original `Errable` in-place, creating a new one with a reference
+    /// Leaves the original `Fallible` in-place, creating a new one with a reference
     /// to the original one, additionally coercing the contents via [`Deref`].
     ///
     /// ```rust
-    /// # use errable::Errable::{self, Fail};
-    /// let fail: Errable<String> = Fail("something went wrong".to_owned());
+    /// # use fallible_option::Fallible::{self, Fail};
+    /// let fail: Fallible<String> = Fail("something went wrong".to_owned());
     /// assert_eq!(fail.as_deref(), Fail("something went wrong"))
     /// ```
     #[inline]
-    pub const fn as_deref(&self) -> Errable<&<E as Deref>::Target>
+    pub const fn as_deref(&self) -> Fallible<&<E as Deref>::Target>
     where
         E: ~const Deref,
     {
@@ -216,13 +216,13 @@ impl<E> Errable<E> {
         }
     }
 
-    /// Converts from `Errable<E>` (or `&mut Errable<E>`) to `Errable<&mut E::Target>`
+    /// Converts from `Fallible<E>` (or `&mut Fallible<E>`) to `Fallible<&mut E::Target>`
     ///
-    /// Leaves the original `Errable` in-place, creating a new one containing a mutable reference to
+    /// Leaves the original `Fallible` in-place, creating a new one containing a mutable reference to
     /// the inner type's [`Deref::Target`] type.
     ///
     /// ```rust
-    /// # use errable::Errable::{self, Fail};
+    /// # use fallible_option::Fallible::{self, Fail};
     /// let mut fail = Fail("uh oh!".to_owned());
     ///
     /// fail.as_deref_mut().map(|err| {
@@ -234,7 +234,7 @@ impl<E> Errable<E> {
     /// ```
     ///
     #[inline]
-    pub const fn as_deref_mut(&mut self) -> Errable<&mut <E as Deref>::Target>
+    pub const fn as_deref_mut(&mut self) -> Fallible<&mut <E as Deref>::Target>
     where
         E: ~const DerefMut,
     {
@@ -244,10 +244,10 @@ impl<E> Errable<E> {
         }
     }
 
-    /// Converts from `&mut Errable<E>` to `Errable<&mut E>`
+    /// Converts from `&mut Fallible<E>` to `Fallible<&mut E>`
     ///
     /// ```rust
-    /// # use errable::Errable::{self, Fail, Success};
+    /// # use fallible_option::Fallible::{self, Fail, Success};
     /// let mut fail = Fail("uh oh!".to_owned());
     /// match fail.as_mut() {
     ///     Fail(err) => err.make_ascii_uppercase(),
@@ -257,17 +257,17 @@ impl<E> Errable<E> {
     /// assert_eq!(fail, Fail("UH OH!".to_owned()))
     /// ```
     #[inline]
-    pub const fn as_mut(&mut self) -> Errable<&mut E> {
+    pub const fn as_mut(&mut self) -> Fallible<&mut E> {
         match self {
             Success => Success,
             Fail(ref mut e) => Fail(e),
         }
     }
 
-    /// Converts from `&Errable<E>` to `Errable<&E>`
+    /// Converts from `&Fallible<E>` to `Fallible<&E>`
     ///
     /// ```rust
-    /// # use errable::Errable::{self, Fail};
+    /// # use fallible_option::Fallible::{self, Fail};
     /// let fail = Fail("uh oh!");
     /// let err_length = fail.as_ref().map(|err| err.len());
     ///
@@ -275,7 +275,7 @@ impl<E> Errable<E> {
     ///
     /// ```
     #[inline]
-    pub const fn as_ref(&self) -> Errable<&E> {
+    pub const fn as_ref(&self) -> Fallible<&E> {
         match self {
             Success => Success,
             Fail(ref e) => Fail(e),
@@ -285,7 +285,7 @@ impl<E> Errable<E> {
     /// Returns true if the value is a `Success`, otherwise false.
     ///
     /// ```rust
-    /// # use errable::Errable::{self, Fail, Success};
+    /// # use fallible_option::Fallible::{self, Fail, Success};
     /// assert_eq!(Fail("some error").is_successful(), false);
     /// assert_eq!(Success::<&str>.is_successful(), true)
     /// ```
@@ -297,7 +297,7 @@ impl<E> Errable<E> {
     /// Returns true if the value is a `Fail`, otherwise false.
     ///
     /// ```rust
-    /// # use errable::Errable::{self, Fail, Success};
+    /// # use fallible_option::Fallible::{self, Fail, Success};
     /// assert_eq!(Fail("some error").is_fail(), true);
     /// assert_eq!(Success::<&str>.is_fail(), false)
     /// ```
@@ -309,29 +309,29 @@ impl<E> Errable<E> {
     /// Unwrap the contained error or panics if no error has occurred.
     ///
     /// ```rust
-    /// # use errable::Errable::{self, Fail, Success};
+    /// # use fallible_option::Fallible::{self, Fail, Success};
     /// let fail = Fail(70);
     /// assert_eq!(fail.unwrap_fail(), 70);
     /// ```
     ///
     /// ```rust,should_panic
-    /// # use errable::Errable::{self, Fail, Success};
-    /// let fail: Errable<u32> = Success;
+    /// # use fallible_option::Fallible::{self, Fail, Success};
+    /// let fail: Fallible<u32> = Success;
     /// assert_eq!(fail.unwrap_fail(), 70);
     /// ```
     #[inline]
     pub fn unwrap_fail(self) -> E {
         match self {
-            Success => panic!("called `Errable::unwrap_fail()` on a `Errable::Success` value"),
+            Success => panic!("called `Fallible::unwrap_fail()` on a `Fallible::Success` value"),
             Fail(err) => err,
         }
     }
 
-    /// Returns `true` if the Errable is a `Fail` value containing an error
+    /// Returns `true` if the Fallible is a `Fail` value containing an error
     /// equivalent to `f`
     ///
     /// ```rust
-    /// # use errable::Errable::{self, Fail};
+    /// # use fallible_option::Fallible::{self, Fail};
     /// let fail = Fail("hello".to_owned());
     /// assert!(fail.contains(&"hello"))
     /// ```
@@ -343,18 +343,18 @@ impl<E> Errable<E> {
         }
     }
 
-    /// Maps an `Errable<E>` to `Errable<U>` by applying a function
+    /// Maps an `Fallible<E>` to `Fallible<U>` by applying a function
     /// to the contained error.
     ///
     /// ```rust
-    /// # use errable::Errable::{self, Fail};
+    /// # use fallible_option::Fallible::{self, Fail};
     /// let fail = Fail("hello");
     /// let fail = fail.map(|err| format!("{err} world!"));
     ///
     /// assert_eq!(fail, Fail("hello world!".to_owned()));
     /// ```
     #[inline]
-    pub const fn map<F, U>(self, op: F) -> Errable<U>
+    pub const fn map<F, U>(self, op: F) -> Fallible<U>
     where
         F: ~const FnOnce(E) -> U,
         F: ~const Destruct,
@@ -366,10 +366,10 @@ impl<E> Errable<E> {
         }
     }
 
-    /// Transforms the `Errable<E>` into a `Result<(), E>`, where `Fail(e)`
+    /// Transforms the `Fallible<E>` into a `Result<(), E>`, where `Fail(e)`
     /// becomes `Err(e)` and `Success` becomes `Ok(())`
     /// ```rust
-    /// # use errable::Errable::{self, Fail};
+    /// # use fallible_option::Fallible::{self, Fail};
     /// let fail = Fail("error").result();
     ///
     /// assert_eq!(fail, Err("error"));
@@ -385,10 +385,10 @@ impl<E> Errable<E> {
         }
     }
 
-    /// Borrows the `Errable<E>` as an `Option<E>`, yielding none
+    /// Borrows the `Fallible<E>` as an `Option<E>`, yielding none
     /// if no error occurred.
     /// ```rust
-    /// # use errable::Errable::{self, Fail};
+    /// # use fallible_option::Fallible::{self, Fail};
     /// let fail = Fail("error occurred");
     /// let maybe_error = fail.err();
     ///
@@ -404,7 +404,7 @@ impl<E> Errable<E> {
 
     /// Constructs a `Result<T, E>` from self.
     /// ```rust
-    /// # use errable::Errable::{self, Fail};
+    /// # use fallible_option::Fallible::{self, Fail};
     /// let fail: Result<u32, &str> = Fail("some error").err_or(10);
     ///
     /// assert_eq!(fail, Err("some error"));
@@ -426,7 +426,7 @@ impl<E> Errable<E> {
     /// and returns an `Option<E>` with the contained error,
     /// if the outcome was `Fail`.
     /// ```rust
-    /// # use errable::Errable::{self, Fail, Success};
+    /// # use fallible_option::Fallible::{self, Fail, Success};
     /// let mut fail = Fail("something went wrong");
     ///
     /// let err = fail.take();
@@ -446,26 +446,26 @@ impl<E> Errable<E> {
     }
 }
 
-impl<E> Errable<&E>
+impl<E> Fallible<&E>
 where
     E: ~const Clone,
 {
-    /// Maps a `Errable<&E>` to a [`Errable<E>`] by cloning the contents of the
+    /// Maps a `Fallible<&E>` to a [`Fallible<E>`] by cloning the contents of the
     /// error.
     #[inline]
     #[must_use = "`self` will be dropped if the result is not used"]
-    pub const fn cloned(self) -> Errable<E> {
+    pub const fn cloned(self) -> Fallible<E> {
         match self {
             Success => Success,
             Fail(e) => Fail(e.clone()),
         }
     }
 
-    /// Maps an `Errable<&E>` to an `Errable<E>` by copying the contents of the
+    /// Maps an `Fallible<&E>` to an `Fallible<E>` by copying the contents of the
     /// error.
     #[inline]
     #[must_use = "`self` will be dropped if the result is not used"]
-    pub const fn copied(self) -> Errable<E>
+    pub const fn copied(self) -> Fallible<E>
     where
         E: Copy,
     {
@@ -476,26 +476,26 @@ where
     }
 }
 
-impl<E> Errable<&mut E>
+impl<E> Fallible<&mut E>
 where
     E: ~const Clone,
 {
-    /// Maps an `Errable<&E>` to an `Errable<E>` by cloning the contents of the
+    /// Maps an `Fallible<&E>` to an `Fallible<E>` by cloning the contents of the
     /// error.
     #[inline]
     #[must_use = "`self` will be dropped if the result is not used"]
-    pub const fn cloned(self) -> Errable<E> {
+    pub const fn cloned(self) -> Fallible<E> {
         match self {
             Success => Success,
             Fail(e) => Fail(e.clone()),
         }
     }
 
-    /// Maps an `Errable<&E>` to an `Errable<E>` by copying the contents of the
+    /// Maps an `Fallible<&E>` to an `Fallible<E>` by copying the contents of the
     /// error.
     #[inline]
     #[must_use = "`self` will be dropped if the result is not used"]
-    pub const fn copied(self) -> Errable<E>
+    pub const fn copied(self) -> Fallible<E>
     where
         E: Copy,
     {
@@ -507,23 +507,23 @@ where
 }
 
 /// The following functions are only available if the generic parameter `E` implements [`Debug`]
-impl<E> Errable<E>
+impl<E> Fallible<E>
 where
     E: Debug,
 {
-    /// Returns a unit value if the `Errable` is not `Fail`.
+    /// Returns a unit value if the `Fallible` is not `Fail`.
     ///
     /// # Panics
     /// Panics if the value is a `Fail`, with a panic message including
     /// the content of the `Fail`.
     /// ```rust
-    /// # use errable::Errable::{self, Fail, Success};
-    /// let success: Errable<()> = Success;
+    /// # use fallible_option::Fallible::{self, Fail, Success};
+    /// let success: Fallible<()> = Success;
     /// success.unwrap();
     /// ```
     ///
     /// ```rust,should_panic
-    /// # use errable::Errable::{self, Fail, Success};
+    /// # use fallible_option::Fallible::{self, Fail, Success};
     /// let fail = Fail("hello world");
     /// fail.unwrap();
     /// ```
@@ -532,16 +532,16 @@ where
         match self {
             Success => (),
             Fail(e) => {
-                panic!("called `Errable::unwrap()` on a `Errable::Fail` value: {e:?}")
+                panic!("called `Fallible::unwrap()` on a `Fallible::Fail` value: {e:?}")
             }
         }
     }
 }
 
-impl<E> Errable<Errable<E>> {
-    /// Flattens a `Errable<Errable<E>>` into a `Errable<E>`
+impl<E> Fallible<Fallible<E>> {
+    /// Flattens a `Fallible<Fallible<E>>` into a `Fallible<E>`
     #[inline]
-    pub const fn flatten(self) -> Errable<E>
+    pub const fn flatten(self) -> Fallible<E>
     where
         E: ~const Destruct,
     {
@@ -552,14 +552,14 @@ impl<E> Errable<Errable<E>> {
     }
 }
 
-impl<E> const From<E> for Errable<E> {
+impl<E> const From<E> for Fallible<E> {
     #[inline]
     fn from(value: E) -> Self {
         Fail(value)
     }
 }
 
-impl<T, E> const From<Result<T, E>> for Errable<E>
+impl<T, E> const From<Result<T, E>> for Fallible<E>
 where
     E: ~const Destruct,
     T: ~const Destruct,
@@ -573,28 +573,28 @@ where
     }
 }
 
-impl<'a, E> const From<&'a Errable<E>> for Errable<&'a E> {
+impl<'a, E> const From<&'a Fallible<E>> for Fallible<&'a E> {
     #[inline]
-    fn from(value: &'a Errable<E>) -> Self {
+    fn from(value: &'a Fallible<E>) -> Self {
         value.as_ref()
     }
 }
 
-impl<'a, E> const From<&'a mut Errable<E>> for Errable<&'a mut E> {
+impl<'a, E> const From<&'a mut Fallible<E>> for Fallible<&'a mut E> {
     #[inline]
-    fn from(value: &'a mut Errable<E>) -> Self {
+    fn from(value: &'a mut Fallible<E>) -> Self {
         value.as_mut()
     }
 }
 
-impl<E> const Default for Errable<E> {
+impl<E> const Default for Fallible<E> {
     #[inline]
     fn default() -> Self {
         Success
     }
 }
 
-impl<E> const Clone for Errable<E>
+impl<E> const Clone for Fallible<E>
 where
     E: ~const Clone + ~const Destruct,
 {
@@ -615,9 +615,9 @@ where
     }
 }
 
-impl<E> Try for Errable<E> {
+impl<E> Try for Fallible<E> {
     type Output = ();
-    type Residual = Errable<E>;
+    type Residual = Fallible<E>;
 
     #[inline]
     fn from_output(_: Self::Output) -> Self {
@@ -633,16 +633,16 @@ impl<E> Try for Errable<E> {
     }
 }
 
-impl<E> FromResidual<Errable<E>> for Errable<E> {
+impl<E> FromResidual<Fallible<E>> for Fallible<E> {
     #[inline]
-    fn from_residual(residual: Errable<E>) -> Self {
+    fn from_residual(residual: Fallible<E>) -> Self {
         residual
     }
 }
 
-impl<T, E> FromResidual<Errable<E>> for Result<T, E> {
+impl<T, E> FromResidual<Fallible<E>> for Result<T, E> {
     #[inline]
-    fn from_residual(residual: Errable<E>) -> Self {
+    fn from_residual(residual: Fallible<E>) -> Self {
         match residual {
             Success => unreachable!(),
             Fail(e) => Err(e),
@@ -650,7 +650,7 @@ impl<T, E> FromResidual<Errable<E>> for Result<T, E> {
     }
 }
 
-impl<E> FromResidual<Result<(), E>> for Errable<E> {
+impl<E> FromResidual<Result<(), E>> for Fallible<E> {
     #[inline]
     fn from_residual(residual: Result<(), E>) -> Self {
         match residual {
@@ -660,7 +660,7 @@ impl<E> FromResidual<Result<(), E>> for Errable<E> {
     }
 }
 
-impl<E> FromResidual<Result<Infallible, E>> for Errable<E> {
+impl<E> FromResidual<Result<Infallible, E>> for Fallible<E> {
     #[inline]
     fn from_residual(residual: Result<Infallible, E>) -> Self {
         match residual {

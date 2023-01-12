@@ -687,6 +687,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use core::fmt::Debug;
+
     use crate::Fallible::{self, Fail, Success};
 
     #[derive(Debug, PartialEq)]
@@ -728,5 +730,24 @@ mod tests {
         }
 
         assert_eq!(outer_error(), Err(OuterError::Inner(InnerError(1))));
+    }
+
+    #[test]
+    fn discard_result_value() {
+        fn ok() -> Result<u32, u32> {
+            Ok(10)
+        }
+
+        fn err() -> Result<u32, u32> {
+            Err(15)
+        }
+
+        fn outer_error() -> Fallible<u32> {
+            let _ = ok()?;
+            let _ = err()?;
+            Success
+        }
+
+        assert_eq!(outer_error(), Fail(15));
     }
 }

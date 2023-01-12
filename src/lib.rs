@@ -646,32 +646,41 @@ where
     }
 }
 
-impl<T, E> FromResidual<Fallible<E>> for Result<T, E> {
+impl<T, E, U> FromResidual<Fallible<U>> for Result<T, E>
+where
+    E: From<U>,
+{
     #[inline]
-    fn from_residual(residual: Fallible<E>) -> Self {
+    fn from_residual(residual: Fallible<U>) -> Self {
         match residual {
             Success => unreachable!(),
-            Fail(e) => Err(e),
+            Fail(e) => Err(e.into()),
         }
     }
 }
 
-impl<E> FromResidual<Result<(), E>> for Fallible<E> {
+impl<E, U> FromResidual<Result<(), U>> for Fallible<E>
+where
+    E: From<U>,
+{
     #[inline]
-    fn from_residual(residual: Result<(), E>) -> Self {
+    fn from_residual(residual: Result<(), U>) -> Self {
         match residual {
             Ok(()) => Success,
-            Err(e) => Fail(e),
+            Err(e) => Fail(e.into()),
         }
     }
 }
 
-impl<E> FromResidual<Result<Infallible, E>> for Fallible<E> {
+impl<E, U> FromResidual<Result<Infallible, U>> for Fallible<E>
+where
+    E: From<U>,
+{
     #[inline]
-    fn from_residual(residual: Result<Infallible, E>) -> Self {
+    fn from_residual(residual: Result<Infallible, U>) -> Self {
         match residual {
             Ok(_) => Success,
-            Err(e) => Fail(e),
+            Err(e) => Fail(e.into()),
         }
     }
 }

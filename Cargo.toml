@@ -1,6 +1,6 @@
 [package]
 name = "fallible-option"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Mathias Pius <contact@pius.io>"]
 description = "Fallible is an Option with inverted Try-semantics."
 keywords = ["error-handling", "result", "try", "fallible"]

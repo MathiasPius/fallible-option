@@ -689,29 +689,28 @@ where
 mod tests {
     use crate::Fallible::{self, Fail, Success};
 
+    #[derive(Debug, PartialEq)]
+    struct InnerError(pub u8);
+
+    #[derive(Debug, PartialEq)]
+    enum OuterError {
+        Inner(InnerError),
+    }
+
+    impl From<InnerError> for OuterError {
+        fn from(value: InnerError) -> Self {
+            OuterError::Inner(value)
+        }
+    }
+
     #[test]
-    fn casting_conversion() {
-        #[derive(Debug, PartialEq)]
-        struct InnerError(pub u8);
-
-        #[derive(Debug, PartialEq)]
-        enum OuterError {
-            Inner(InnerError),
-        }
-
-        impl From<InnerError> for OuterError {
-            fn from(value: InnerError) -> Self {
-                OuterError::Inner(value)
-            }
-        }
-
+    fn fallible_residual_conversion() {
         fn inner_error() -> Fallible<InnerError> {
             Fail(InnerError(1))
         }
 
         fn outer_error() -> Fallible<OuterError> {
             inner_error()?;
-
             Success
         }
 
@@ -719,5 +718,19 @@ mod tests {
             outer_error().unwrap_fail(),
             OuterError::Inner(InnerError(1))
         );
+    }
+
+    #[test]
+    fn result_residual_conversion() {
+        fn inner_error() -> Fallible<InnerError> {
+            Fail(InnerError(1))
+        }
+
+        fn outer_error() -> Result<(), OuterError> {
+            inner_error()?;
+            Ok(())
+        }
+
+        assert_eq!(outer_error(), Err(OuterError::Inner(InnerError(1))));
     }
 }

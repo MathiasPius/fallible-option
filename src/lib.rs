@@ -702,10 +702,10 @@ mod tests {
             OuterError::Inner(value)
         }
     }
-    
+
     fn always_produces_error() -> Fallible<InnerError> {
-            Fail(InnerError(1))
-        }
+        Fail(InnerError(1))
+    }
 
     #[test]
     fn fallible_residual_conversion() {
@@ -729,5 +729,4 @@ mod tests {
 
         assert_eq!(outer_error(), Err(OuterError::Inner(InnerError(1))));
     }
-
 }

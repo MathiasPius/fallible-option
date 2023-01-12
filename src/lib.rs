@@ -702,15 +702,15 @@ mod tests {
             OuterError::Inner(value)
         }
     }
-
-    #[test]
-    fn fallible_residual_conversion() {
-        fn inner_error() -> Fallible<InnerError> {
+    
+    fn always_produces_error() -> Fallible<InnerError> {
             Fail(InnerError(1))
         }
 
+    #[test]
+    fn fallible_residual_conversion() {
         fn outer_error() -> Fallible<OuterError> {
-            inner_error()?;
+            always_produces_error()?;
             Success
         }
 
@@ -722,15 +722,12 @@ mod tests {
 
     #[test]
     fn result_residual_conversion() {
-        fn inner_error() -> Fallible<InnerError> {
-            Fail(InnerError(1))
-        }
-
         fn outer_error() -> Result<(), OuterError> {
-            inner_error()?;
+            always_produces_error()?;
             Ok(())
         }
 
         assert_eq!(outer_error(), Err(OuterError::Inner(InnerError(1))));
     }
+
 }
